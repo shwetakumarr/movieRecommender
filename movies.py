@@ -8,8 +8,8 @@ from sklearn.neighbors import NearestNeighbors
 
 def main():
     # read in relevant datasets
-    movies = read_files(fname="data/movies.csv")
-    ratings = read_files(fname="data/ratings.csv")
+    movies = read_files(fname="data2/movies.csv")
+    ratings = read_files(fname="data2/ratings.csv")
 
     rating_pivot = ratings.pivot_table(values='rating', columns='userId', index='movieId').fillna(0)
     nn_algo = NearestNeighbors(metric='cosine')
@@ -21,7 +21,7 @@ def main():
             self.ishist = False
         
         def recommend_on_movie(self, movie, n_reccomend = 5):
-            self.ishist = True
+            # self.ishist = True
             
             # check if movie entered is valid in database
             if movie not in movies['title'].unique():
@@ -29,7 +29,7 @@ def main():
 
             # add movie id to history
             movieid = int(movies[movies['title'] == movie]['movieId'])
-            self.hist.append(movieid)
+            # self.hist.append(movieid)
 
             # run nn to find most similar movies
             distance, neighbors = nn_algo.kneighbors([rating_pivot.loc[movieid]], n_neighbors=n_reccomend + 1)
@@ -50,7 +50,7 @@ def main():
     
       
     print("\n\nThis program was created to provide users with movie recommendations using the nearest neighbors algorithm and collaborative filtering.\n",
-          "Using a database of over 4000 movies and 6000 users, the program can suggest to you which movies to watch.\n",
+          "Using a database of over 9500 movies and 600 users, the program can suggest to you which movies to watch.\n",
           "Follow the prompts to get your movie recommendations. You may type 'Stop' to quit.\n")
     
     inp = ""
@@ -63,19 +63,20 @@ def main():
               "[2] Watch history based recommendations\n",
               "[3] Add to my watch history individually\n",
               "[4] Add to my watch history via .txt file\n",
+              "[5] Remove from my watch history\n",
               "Select a number to choose an option or type 'Stop' to quit.\n")
         
         inp = input("Enter number: ")
+        out = ''
         
         if inp == '1':
-            out = input("What movie would you like recommendations based on? This movie will be added to your watch history >> ")
+            out = input("What movie would you like recommendations based on? This movie will NOT be added to your watch history >> ")
             strn = ''
             while strn != 'y':
                 print("\n", recommender.recommend_on_movie(out), "\n")
                 strn = input("Are you done viewing? (y/n) ")
                 
         elif inp == '2':
-            out = ''
             while out != 'y':
                 print("\n", recommender.recommend_on_history(), "\n")
                 out = input("Are you done viewing? (y/n) ")
@@ -87,8 +88,12 @@ def main():
                     print(inp, "not in movie database")
                 else:
                     movieid = int(movies[movies['title'] == inp]['movieId'])
-                    recommender.hist.append(movieid)
-                    print(inp, "succuessfully added to watch history\n")
+                    if movieid in recommender.hist:
+                        print(inp, "already in your watch history\n")
+                    else:
+                        recommender.hist.append(movieid)
+                        recommender.ishist = True
+                        print(inp, "succuessfully added to your watch history\n")
 
                 out = input("Would you like to add another movie? (y/n) ")
 
@@ -106,9 +111,34 @@ def main():
                     else:
                         movieid = int(movies[movies['title'] == item]['movieId'])
                         recommender.hist.append(movieid)
+                        recommender.ishist = True
                         print(item, "succuessfully added to watch history\n")
 
                 out = input("Would you like to add another .txt file? (y/n) ")
+        
+        elif inp == '5':
+            if recommender.ishist == False:
+                print('No history found')
+            else:
+                while out != 'n':
+                    for item in recommender.hist:
+                        mov = movies[movies['movieId'] == item]['title']
+                        print(mov)
+
+                    inp = input("What movie would you like to remove from your watch history? ")
+                    if inp not in movies['title'].unique():
+                        print(inp, "not in movie database")
+                    else:
+                        movieid = int(movies[movies['title'] == inp]['movieId'])
+                        if movieid not in recommender.hist:
+                            print(inp, "is not in yout watch history\n")
+                        else:
+                            recommender.hist.remove(movieid)
+                            if len(recommender.hist) == 0:
+                                recommender.ishist = False
+                            print(inp, "succuessfully removed from your watch history\n")
+
+                    out = input("Would you like to remove another movie? (y/n) ")
     
     print("Thanks for being here! See you next time.")
 
